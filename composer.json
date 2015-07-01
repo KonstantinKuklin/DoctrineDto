@@ -1,0 +1,26 @@
+{
+  "name": "konstantin-kuklin/doctrine-dto",
+  "type": "library",
+  "keywords": ["php", "library", "dto", "doctrine"],
+  "homepage": "https://github.com/KonstantinKuklin/DoctrineDto",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Konstantin Kuklin",
+      "email": "konstantin.kuklin@gmail.com"
+    }
+  ],
+
+  "require-dev": {
+    "php": ">=5.3",
+    "doctrine/orm": "2.2.*"
+  },
+
+  "autoload-dev": {
+    "psr-4": {"KonstantinKuklin\\Tests\\": "tests/"}
+  },
+
+  "autoload": {
+    "psr-0": {"KonstantinKuklin\\": "src/"}
+  }
+}

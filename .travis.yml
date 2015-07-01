@@ -1,0 +1,35 @@
+language: php
+
+matrix:
+    include:
+        - php: 5.3
+        - php: 5.4
+        - php: 5.5
+        - php: 5.6
+        - php: 5.3
+          env: deps=low
+        - php: 5.6
+          env: deps=high
+        - php: nightly
+        - php: hhvm
+    allow_failures:
+        - php: nightly
+        - php: hhvm
+    fast_finish: true
+
+env:
+  - DB=mysql
+
+before_script:
+  - sudo apt-get update
+  - sudo apt-get install mysql-server-5.5 mysql-client-5.5 libmysqlclient-dev
+  - mysql -e 'CREATE DATABASE IF NOT EXISTS dto;'
+  - mysql -D dto < ./tests/Resources/dump.sql
+  - composer self-update
+  - composer install
+
+after_script:
+  - wget https://scrutinizer-ci.com/ocular.phar
+  - php ocular.phar code-coverage:upload --format=php-clover coverage.clover
+
+script: phpunit --process-isolation --coverage-clover=coverage.clover
