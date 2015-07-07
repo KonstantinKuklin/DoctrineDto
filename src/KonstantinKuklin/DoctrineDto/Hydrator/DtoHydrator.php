@@ -35,10 +35,6 @@ final class DtoHydrator extends AbstractHydrator
     private $_idTemplate;
     private $_resultCounter;
     private $_rootAliases = array();
-    private $_initializedCollections = array();
-    private $_existingCollections = array();
-
-    private $dtoIdentifiers = array();
     private $identityMap = array();
 
     /**
@@ -183,19 +179,16 @@ final class DtoHydrator extends AbstractHydrator
             } else {
                 $idHash = $data[$class->identifier[0]];
             }
-            $id = array($class->identifier[0] => $idHash);
         }
 
         // try to get object from Cache
         if (isset($this->identityMap[$class->rootEntityName][$idHash])) {
             $dto = $this->identityMap[$class->rootEntityName][$idHash];
 
-            //return $dto;
+            return $dto;
         } else {
             $dto = new $classNameDto();
-            $oid = spl_object_hash($dto);
 
-            $this->dtoIdentifiers[$oid] = $id;
             $this->identityMap[$class->rootEntityName][$idHash] = $dto;
 
             if (property_exists($classNameDto, $isInitializedPropertyPath)) {
@@ -252,27 +245,18 @@ final class DtoHydrator extends AbstractHydrator
                             // an entity with subclasses at a *-to-one location is really bad! (performance-wise)
                             // understood TODO
 
-                            // $newValueDto - here must be
+                            // TODO need to understand and fix
+                            $newValueDto = null;
                         } else {
                             // Deferred eager load only works for single identifier classes
 
                             if ($hints['fetchMode'][$class->name][$field] == ClassMetadata::FETCH_EAGER) {
-                                if (isset($hints['deferEagerLoad']) && !$targetClass->isIdentifierComposite) {
-                                    $newValueEntityPath = $assoc['targetEntity'];
-                                    $newValueDtoPath = $this->_getDtoPath($newValueEntityPath);
-                                    $newValueDto = new $newValueDtoPath;
-                                    $identifierFieldNames = $targetClass->getIdentifierFieldNames();
-                                    $identifierFieldName = array_pop($identifierFieldNames);
-                                    $newValueDto->$identifierFieldName = $associatedId;
-
-                                } else {
-                                    $newValueEntityPath = $assoc['targetEntity'];
-                                    $newValueDtoPath = $this->_getDtoPath($newValueEntityPath);
-                                    $newValueDto = new $newValueDtoPath;
-                                    $identifierFieldNames = $targetClass->getIdentifierFieldNames();
-                                    $identifierFieldName = array_pop($identifierFieldNames);
-                                    $newValueDto->$identifierFieldName = $associatedId;
-                                }
+                                $newValueEntityPath = $assoc['targetEntity'];
+                                $newValueDtoPath = $this->_getDtoPath($newValueEntityPath);
+                                $newValueDto = new $newValueDtoPath;
+                                $identifierFieldNames = $targetClass->getIdentifierFieldNames();
+                                $identifierFieldName = array_pop($identifierFieldNames);
+                                $newValueDto->$identifierFieldName = $associatedId;
                             } else {
                                 $newValueEntityPath = $assoc['targetEntity'];
                                 $newValueDtoPath = $this->_getDtoPath($newValueEntityPath);
@@ -289,15 +273,12 @@ final class DtoHydrator extends AbstractHydrator
                                 }
                             }
                             // PERF: Inlined & optimized code from UnitOfWork#registerManaged()
-                            $newValueDtoOid = spl_object_hash($newValueDto);
-                            $this->dtoIdentifiers[$newValueDtoOid] = $associatedId;
                             $this->identityMap[$targetClass->rootEntityName][$relatedIdHash] = $newValueDto;
                         }
                         $dto->$field = $newValueDto;
 
                         if ($assoc['inversedBy'] && $assoc['type'] & ClassMetadata::ONE_TO_ONE) {
                             $inverseAssoc = $targetClass->associationMappings[$assoc['inversedBy']];
-//                                $targetClass->reflFields[$inverseAssoc['fieldName']]->setValue($newValue, $entity);
                             $inverseFieldName = $inverseAssoc['fieldName'];
                             $newValueDto->$inverseFieldName = $dto;
                         }
@@ -308,9 +289,6 @@ final class DtoHydrator extends AbstractHydrator
                 }
             }
         }
-
-//        }
-
 
         return $dto;
     }
@@ -380,7 +358,7 @@ final class DtoHydrator extends AbstractHydrator
 
         // Extract scalar values. They're appended at the end.
         if (isset($rowData['scalars'])) {
-            $scalars = $rowData['scalars'];
+//            $scalars = $rowData['scalars'];
             unset($rowData['scalars']);
             if (!$rowData) {
                 ++$this->_resultCounter;
@@ -406,7 +384,7 @@ final class DtoHydrator extends AbstractHydrator
      */
     private function _hydrateChunks(array &$result, array $rowData, $nonemptyComponents, $id)
     {
-// Hydrate the data chunks
+        // hydrate the data chunks
         foreach ($rowData as $dqlAlias => $data) {
             $entityName = $this->_rsm->aliasMap[$dqlAlias];
 
@@ -448,15 +426,6 @@ final class DtoHydrator extends AbstractHydrator
                     $reflFieldValue = $parentObject->$relationField;
                     // PATH A: Collection-valued association
                     if (isset($nonemptyComponents[$dqlAlias])) {
-                        $collKey = $oid . $relationField;
-                        if (isset($this->_initializedCollections[$collKey])) {
-                            $reflFieldValue = $this->_initializedCollections[$collKey];
-                        } else {
-                            if (!$parentObject->$relationField) {
-                                $parentObject->$relationField = array();
-                            }
-                        }
-
                         $indexExists = isset($this->_identifierMap[$path][$id[$parentAlias]][$id[$dqlAlias]]);
                         $index = $indexExists ? $this->_identifierMap[$path][$id[$parentAlias]][$id[$dqlAlias]] : false;
                         $indexIsValid = $index !== false ? isset($reflFieldValue[$index]) : false;
@@ -469,8 +438,6 @@ final class DtoHydrator extends AbstractHydrator
 
                             // Update result pointer
                             $this->_resultPointers[$dqlAlias] = $element;
-                            $this->_existingCollections[$collKey] = $element;
-//                            }
                         } else {
                             // Update result pointer
                             $this->_resultPointers[$dqlAlias] = $reflFieldValue[$index];
@@ -518,7 +485,6 @@ final class DtoHydrator extends AbstractHydrator
                             // Update result pointer
                             $this->_resultPointers[$dqlAlias] = $element;
                         }
-                        // else leave $reflFieldValue null for single-valued associations
                     } else {
                         // Update result pointer
                         $this->_resultPointers[$dqlAlias] = $reflFieldValue;
@@ -554,11 +520,7 @@ final class DtoHydrator extends AbstractHydrator
                             $result[$key] = $element;
                             $this->_identifierMap[$dqlAlias][$id[$dqlAlias]] = $key;
                         }
-
                     } else {
-//                        if ($this->_rsm->isMixed) {
-//                            $element = array(0 => $element);
-//                        }
                         $result[] = $element;
                         $this->_identifierMap[$dqlAlias][$id[$dqlAlias]] = $this->_resultCounter;
                         ++$this->_resultCounter;
