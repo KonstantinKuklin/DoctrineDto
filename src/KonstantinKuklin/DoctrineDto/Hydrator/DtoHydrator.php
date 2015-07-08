@@ -35,7 +35,7 @@ final class DtoHydrator extends AbstractHydrator
     private $_idTemplate;
     private $_resultCounter;
     private $_rootAliases = array();
-    private $identityMap = array();
+    private $identityMap  = array();
 
     /**
      * @var MapInterface
@@ -51,11 +51,11 @@ final class DtoHydrator extends AbstractHydrator
         $this->_idTemplate = array();
 
         $this->_resultCounter = 0;
-        $this->dtoMap = DtoClassMap::getMapDto();
+        $this->dtoMap         = DtoClassMap::getMapDto();
 
         foreach ($this->_rsm->aliasMap as $dqlAlias => $className) {
             $this->_identifierMap[$dqlAlias] = array();
-            $this->_idTemplate[$dqlAlias] = '';
+            $this->_idTemplate[$dqlAlias]    = '';
 
             if (!isset($this->_ce[$className])) {
                 $this->_ce[$className] = $this->_em->getClassMetadata($className);
@@ -75,8 +75,8 @@ final class DtoHydrator extends AbstractHydrator
             }
 
             $sourceClassName = $this->_rsm->aliasMap[$this->_rsm->parentAliasMap[$dqlAlias]];
-            $sourceClass = $this->_getClassMetadata($sourceClassName);
-            $assoc = $sourceClass->associationMappings[$this->_rsm->relationMap[$dqlAlias]];
+            $sourceClass     = $this->_getClassMetadata($sourceClassName);
+            $assoc           = $sourceClass->associationMappings[$this->_rsm->relationMap[$dqlAlias]];
 
             $this->_hints['fetched'][$this->_rsm->parentAliasMap[$dqlAlias]][$assoc['fieldName']] = true;
 
@@ -93,7 +93,7 @@ final class DtoHydrator extends AbstractHydrator
 
             // handle fetch-joined owning side bi-directional one-to-one associations
             if ($assoc['inversedBy']) {
-                $class = $this->_ce[$className];
+                $class        = $this->_ce[$className];
                 $inverseAssoc = $class->associationMappings[$assoc['inversedBy']];
 
                 if (!($inverseAssoc['type'] & ClassMetadata::TO_ONE)) {
@@ -112,8 +112,6 @@ final class DtoHydrator extends AbstractHydrator
     {
         parent::cleanup();
         $this->_identifierMap =
-        $this->_initializedCollections =
-        $this->_existingCollections =
         $this->_resultPointers = array();
     }
 
@@ -123,7 +121,7 @@ final class DtoHydrator extends AbstractHydrator
     protected function hydrateAllData()
     {
         $result = array();
-        $cache = array();
+        $cache  = array();
 
         while ($row = $this->_stmt->fetch(PDO::FETCH_ASSOC)) {
             $this->_hydrateRow($row, $cache, $result);
@@ -143,7 +141,7 @@ final class DtoHydrator extends AbstractHydrator
     private function _getDto(array $data, $dqlAlias)
     {
         $classNameEntity = $this->_rsm->aliasMap[$dqlAlias];
-        $className = $this->_getDtoPath($classNameEntity);
+        $className       = $this->_getDtoPath($classNameEntity);
 
         // TODO cache here
 
@@ -161,7 +159,7 @@ final class DtoHydrator extends AbstractHydrator
     private function _createDto($classNameDto, $classNameEntity, array $data, &$hints = array())
     {
         $isInitializedPropertyPath = self::INITIALIZED_PROPERTY;
-        $class = $this->_em->getClassMetadata($classNameEntity);
+        $class                     = $this->_em->getClassMetadata($classNameEntity);
 
         if ($class->isIdentifierComposite) {
             $id = array();
@@ -251,16 +249,16 @@ final class DtoHydrator extends AbstractHydrator
                             // Deferred eager load only works for single identifier classes
 
                             if ($hints['fetchMode'][$class->name][$field] == ClassMetadata::FETCH_EAGER) {
-                                $newValueEntityPath = $assoc['targetEntity'];
-                                $newValueDtoPath = $this->_getDtoPath($newValueEntityPath);
-                                $newValueDto = new $newValueDtoPath;
-                                $identifierFieldNames = $targetClass->getIdentifierFieldNames();
-                                $identifierFieldName = array_pop($identifierFieldNames);
+                                $newValueEntityPath                = $assoc['targetEntity'];
+                                $newValueDtoPath                   = $this->_getDtoPath($newValueEntityPath);
+                                $newValueDto                       = new $newValueDtoPath;
+                                $identifierFieldNames              = $targetClass->getIdentifierFieldNames();
+                                $identifierFieldName               = array_pop($identifierFieldNames);
                                 $newValueDto->$identifierFieldName = $associatedId;
                             } else {
-                                $newValueEntityPath = $assoc['targetEntity'];
-                                $newValueDtoPath = $this->_getDtoPath($newValueEntityPath);
-                                $newValueDto = new $newValueDtoPath;
+                                $newValueEntityPath   = $assoc['targetEntity'];
+                                $newValueDtoPath      = $this->_getDtoPath($newValueEntityPath);
+                                $newValueDto          = new $newValueDtoPath;
                                 $identifierFieldNames = $targetClass->getIdentifierFieldNames();
 
                                 foreach ($identifierFieldNames as $identifierFieldName) {
@@ -278,8 +276,8 @@ final class DtoHydrator extends AbstractHydrator
                         $dto->$field = $newValueDto;
 
                         if ($assoc['inversedBy'] && $assoc['type'] & ClassMetadata::ONE_TO_ONE) {
-                            $inverseAssoc = $targetClass->associationMappings[$assoc['inversedBy']];
-                            $inverseFieldName = $inverseAssoc['fieldName'];
+                            $inverseAssoc                   = $targetClass->associationMappings[$assoc['inversedBy']];
+                            $inverseFieldName               = $inverseAssoc['fieldName'];
                             $newValueDto->$inverseFieldName = $dto;
                         }
                     }
@@ -351,14 +349,13 @@ final class DtoHydrator extends AbstractHydrator
     protected function _hydrateRow(array $data, array &$cache, array &$result)
     {
         // Initialize
-        $id = $this->_idTemplate; // initialize the id-memory
+        $id                 = $this->_idTemplate; // initialize the id-memory
         $nonemptyComponents = array();
         // Split the row data into chunks of class data.
         $rowData = $this->gatherRowData($data, $cache, $id, $nonemptyComponents);
 
         // Extract scalar values. They're appended at the end.
         if (isset($rowData['scalars'])) {
-//            $scalars = $rowData['scalars'];
             unset($rowData['scalars']);
             if (!$rowData) {
                 ++$this->_resultCounter;
@@ -366,14 +363,6 @@ final class DtoHydrator extends AbstractHydrator
         }
 
         $this->_hydrateChunks($result, $rowData, $nonemptyComponents, $id);
-
-
-        // Append scalar values to mixed result sets
-//        if (isset($scalars)) {
-//            foreach ($scalars as $name => $value) {
-//                $result[$this->_resultCounter - 1][$name] = $value;
-//            }
-//        }
     }
 
     /**
@@ -390,150 +379,167 @@ final class DtoHydrator extends AbstractHydrator
 
             if (isset($this->_rsm->parentAliasMap[$dqlAlias])) {
                 // It's a joined result
-
-                $parentAlias = $this->_rsm->parentAliasMap[$dqlAlias];
-                // we need the $path to save into the identifier map which entities were already
-                // seen for this parent-child relationship
-                $path = $parentAlias . '.' . $dqlAlias;
-
-                // We have a RIGHT JOIN result here. Doctrine cannot hydrate RIGHT JOIN Object-Graphs
-                if (!isset($nonemptyComponents[$parentAlias])) {
-                    // TODO: Add special case code where we hydrate the right join objects into identity map at least
-                    continue;
-                }
-
-                // Get a reference to the parent object to which the joined element belongs.
-                if ($this->_rsm->isMixed && isset($this->_rootAliases[$parentAlias])) {
-                    $first = reset($this->_resultPointers);
-                    $parentObject = $first[key($first)];
-                } else {
-                    if (isset($this->_resultPointers[$parentAlias])) {
-                        $parentObject = $this->_resultPointers[$parentAlias];
-                    } else {
-                        // Parent object of relation not found, so skip it.
-                        continue;
-                    }
-                }
-
-                $parentClass = $this->_ce[$this->_rsm->aliasMap[$parentAlias]];
-                $oid = spl_object_hash($parentObject);
-                $relationField = $this->_rsm->relationMap[$dqlAlias];
-                $relation = $parentClass->associationMappings[$relationField];
-                $reflField = $parentClass->reflFields[$relationField];
-
-                // Check the type of the relation (many or single-valued)
-                if (!($relation['type'] & ClassMetadata::TO_ONE)) {
-                    $reflFieldValue = $parentObject->$relationField;
-                    // PATH A: Collection-valued association
-                    if (isset($nonemptyComponents[$dqlAlias])) {
-                        $indexExists = isset($this->_identifierMap[$path][$id[$parentAlias]][$id[$dqlAlias]]);
-                        $index = $indexExists ? $this->_identifierMap[$path][$id[$parentAlias]][$id[$dqlAlias]] : false;
-                        $indexIsValid = $index !== false ? isset($reflFieldValue[$index]) : false;
-
-                        if (!$indexExists || !$indexIsValid) {
-                            $element = $this->_getDto($data, $dqlAlias);
-
-                            $parentField = &$parentObject->$relationField;
-                            $parentField[] = $element;
-
-                            // Update result pointer
-                            $this->_resultPointers[$dqlAlias] = $element;
-                        } else {
-                            // Update result pointer
-                            $this->_resultPointers[$dqlAlias] = $reflFieldValue[$index];
-                        }
-                    }
-
-                } else {
-                    // PATH B: Single-valued association
-                    $reflFieldValue = $reflField->getValue($parentObject);
-                    if (!$reflFieldValue || isset($this->_hints[Query::HINT_REFRESH]) || ($reflFieldValue instanceof Proxy && !$reflFieldValue->__isInitialized__)) {
-                        // we only need to take action if this value is null,
-                        // we refresh the entity or its an unitialized proxy.
-                        if (isset($nonemptyComponents[$dqlAlias])) {
-                            $element = $this->_getDto($data, $dqlAlias);
-                            $parentObject->$relationField = $element;
-                            //$this->_uow->setOriginalEntityProperty($oid, $relationField, $element);
-                            $targetClass = $this->_ce[$relation['targetEntity']];
-                            if ($relation['isOwningSide']) {
-                                //TODO: Just check hints['fetched'] here?
-                                // If there is an inverse mapping on the target class its bidirectional
-                                if ($relation['inversedBy']) {
-                                    $inverseAssoc = $targetClass->associationMappings[$relation['inversedBy']];
-                                    if ($inverseAssoc['type'] & ClassMetadata::TO_ONE) {
-                                        $targetClass->reflFields[$inverseAssoc['fieldName']]->setValue(
-                                            $element,
-                                            $parentObject
-                                        );
-
-                                    }
-                                } else {
-                                    if ($parentClass === $targetClass && $relation['mappedBy']) {
-                                        // Special case: bi-directional self-referencing one-one on the same class
-                                        $targetClass->reflFields[$relationField]->setValue($element, $parentObject);
-                                    }
-                                }
-                            } else {
-                                // For sure bidirectional, as there is no inverse side in unidirectional mappings
-                                $targetClass->reflFields[$relation['mappedBy']]->setValue($element, $parentObject);
-                                $this->_uow->setOriginalEntityProperty(
-                                    spl_object_hash($element),
-                                    $relation['mappedBy'],
-                                    $parentObject
-                                );
-                            }
-                            // Update result pointer
-                            $this->_resultPointers[$dqlAlias] = $element;
-                        }
-                    } else {
-                        // Update result pointer
-                        $this->_resultPointers[$dqlAlias] = $reflFieldValue;
-                    }
-                }
+                $this->hydrateJoinedResult($dqlAlias, $data, $id, $nonemptyComponents);
             } else {
                 // PATH C: Its a root result element
-                $this->_rootAliases[$dqlAlias] = true; // Mark as root alias
+                $this->hydrateRootResult($result, $dqlAlias, $entityName, $rowData, $id, $nonemptyComponents);
+            }
+        }
+    }
 
-                // if this row has a NULL value for the root result id then make it a null result.
-                if (!isset($nonemptyComponents[$dqlAlias])) {
-                    if ($this->_rsm->isMixed) {
-                        $result[] = array(0 => null);
-                    } else {
-                        $result[] = null;
-                    }
+    /**
+     * @param array  $result
+     * @param string $dqlAlias
+     * @param string $entityName
+     * @param array  $rowData
+     * @param int    $id
+     * @param mixed  $nonemptyComponents
+     */
+    private function hydrateRootResult(array &$result, $dqlAlias, $entityName, array $rowData, $id, $nonemptyComponents)
+    {
+        $this->_rootAliases[$dqlAlias] = true; // Mark as root alias
+
+        // if this row has a NULL value for the root result id then make it a null result.
+        if (!isset($nonemptyComponents[$dqlAlias])) {
+            if ($this->_rsm->isMixed) {
+                $result[] = array(0 => null);
+            } else {
+                $result[] = null;
+            }
+            ++$this->_resultCounter;
+
+            return;
+        }
+
+        // check for existing result from the iterations before
+        if (!isset($this->_identifierMap[$dqlAlias][$id[$dqlAlias]])) {
+            $element = $this->_getDto($rowData[$dqlAlias], $dqlAlias);
+            if (isset($this->_rsm->indexByMap[$dqlAlias])) {
+                $field = $this->_rsm->indexByMap[$dqlAlias];
+                $key   = $this->_ce[$entityName]->reflFields[$field]->getValue($element);
+                if ($this->_rsm->isMixed) {
+                    $element                                         = array($key => $element);
+                    $result[]                                        = $element;
+                    $this->_identifierMap[$dqlAlias][$id[$dqlAlias]] = $this->_resultCounter;
                     ++$this->_resultCounter;
-                    continue;
+                } else {
+                    $result[$key]                                    = $element;
+                    $this->_identifierMap[$dqlAlias][$id[$dqlAlias]] = $key;
                 }
+            } else {
+                $result[]                                        = $element;
+                $this->_identifierMap[$dqlAlias][$id[$dqlAlias]] = $this->_resultCounter;
+                ++$this->_resultCounter;
+            }
 
-                // check for existing result from the iterations before
-                if (!isset($this->_identifierMap[$dqlAlias][$id[$dqlAlias]])) {
-                    $element = $this->_getDto($rowData[$dqlAlias], $dqlAlias);
-                    if (isset($this->_rsm->indexByMap[$dqlAlias])) {
-                        $field = $this->_rsm->indexByMap[$dqlAlias];
-                        $key = $this->_ce[$entityName]->reflFields[$field]->getValue($element);
-                        if ($this->_rsm->isMixed) {
-                            $element = array($key => $element);
-                            $result[] = $element;
-                            $this->_identifierMap[$dqlAlias][$id[$dqlAlias]] = $this->_resultCounter;
-                            ++$this->_resultCounter;
-                        } else {
-                            $result[$key] = $element;
-                            $this->_identifierMap[$dqlAlias][$id[$dqlAlias]] = $key;
-                        }
-                    } else {
-                        $result[] = $element;
-                        $this->_identifierMap[$dqlAlias][$id[$dqlAlias]] = $this->_resultCounter;
-                        ++$this->_resultCounter;
-                    }
+            // Update result pointer
+            $this->_resultPointers[$dqlAlias] = $element;
+
+        } else {
+            // Update result pointer
+            $index                            = $this->_identifierMap[$dqlAlias][$id[$dqlAlias]];
+            $this->_resultPointers[$dqlAlias] = $result[$index];
+        }
+    }
+
+    /**
+     * @param string $dqlAlias
+     * @param array  $data
+     * @param int    $id
+     * @param mixed  $nonemptyComponents
+     */
+    private function hydrateJoinedResult($dqlAlias, array $data, $id, $nonemptyComponents)
+    {
+        $parentAlias = $this->_rsm->parentAliasMap[$dqlAlias];
+        // we need the $path to save into the identifier map which entities were already
+        // seen for this parent-child relationship
+        $path = $parentAlias . '.' . $dqlAlias;
+
+        // We have a RIGHT JOIN result here. Doctrine cannot hydrate RIGHT JOIN Object-Graphs
+        if (!isset($nonemptyComponents[$parentAlias])) {
+            // TODO: Add special case code where we hydrate the right join objects into identity map at least
+            return;
+        }
+
+        // Get a reference to the parent object to which the joined element belongs.
+        if ($this->_rsm->isMixed && isset($this->_rootAliases[$parentAlias])) {
+            $first        = reset($this->_resultPointers);
+            $parentObject = $first[key($first)];
+        } else {
+            if (isset($this->_resultPointers[$parentAlias])) {
+                $parentObject = $this->_resultPointers[$parentAlias];
+            } else {
+                // Parent object of relation not found, so skip it.
+                return;
+            }
+        }
+
+        $parentClass = $this->_ce[$this->_rsm->aliasMap[$parentAlias]];
+        $relationField = $this->_rsm->relationMap[$dqlAlias];
+        $relation      = $parentClass->associationMappings[$relationField];
+
+        // Check the type of the relation (many or single-valued)
+        if (!($relation['type'] & ClassMetadata::TO_ONE)) {
+            // PATH A: Collection-valued association
+            if (isset($nonemptyComponents[$dqlAlias])) {
+                $indexExists  = isset($this->_identifierMap[$path][$id[$parentAlias]][$id[$dqlAlias]]);
+
+                if (!$indexExists) {
+                    $element = $this->_getDto($data, $dqlAlias);
+
+                    $parentField   = &$parentObject->$relationField;
+                    $parentField[] = $element;
+                    $this->_identifierMap[$path][$id[$parentAlias]][$id[$dqlAlias]] = true;
 
                     // Update result pointer
                     $this->_resultPointers[$dqlAlias] = $element;
-
-                } else {
-                    // Update result pointer
-                    $index = $this->_identifierMap[$dqlAlias][$id[$dqlAlias]];
-                    $this->_resultPointers[$dqlAlias] = $result[$index];
                 }
+            }
+
+        } else {
+            // PATH B: Single-valued association
+            if (!$parentObject->$relationField) {
+                $element                      = $this->_getDto($data, $dqlAlias);
+                $parentObject->$relationField = $element;
+                $this->_resultPointers[$dqlAlias] = $element;
+
+                return;
+            }
+            // we only need to take action if this value is null,
+            // we refresh the entity or its an unitialized proxy.
+            if (isset($nonemptyComponents[$dqlAlias])) {
+                $element                      = $this->_getDto($data, $dqlAlias);
+                $parentObject->$relationField = $element;
+                $targetClass = $this->_ce[$relation['targetEntity']];
+                if ($relation['isOwningSide']) {
+                    //TODO: Just check hints['fetched'] here?
+                    // If there is an inverse mapping on the target class its bidirectional
+                    if ($relation['inversedBy']) {
+                        $inverseAssoc = $targetClass->associationMappings[$relation['inversedBy']];
+                        if ($inverseAssoc['type'] & ClassMetadata::TO_ONE) {
+                            $targetClass->reflFields[$inverseAssoc['fieldName']]->setValue(
+                                $element,
+                                $parentObject
+                            );
+
+                        }
+                    } else {
+                        if ($parentClass === $targetClass && $relation['mappedBy']) {
+                            // Special case: bi-directional self-referencing one-one on the same class
+                            $targetClass->reflFields[$relationField]->setValue($element, $parentObject);
+                        }
+                    }
+                } else {
+                    // For sure bidirectional, as there is no inverse side in unidirectional mappings
+                    $targetClass->reflFields[$relation['mappedBy']]->setValue($element, $parentObject);
+                    $this->_uow->setOriginalEntityProperty(
+                        spl_object_hash($element),
+                        $relation['mappedBy'],
+                        $parentObject
+                    );
+                }
+                // Update result pointer
+                $this->_resultPointers[$dqlAlias] = $element;
             }
         }
     }
